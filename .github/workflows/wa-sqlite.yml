@@ -7,13 +7,13 @@ on:
     inputs:
       sqlite_tag:
         description: 'SQLite source tree tag'
-        default: 'version-3.44.0'
+        default: 'version-3.46.1'
         required: true
         type: string
 
       em_version:
         description: 'EMSDK version'
-        default: '3.1.47'
+        default: '3.1.68'
         required: true
         type: string
 
@@ -43,7 +43,7 @@ jobs:
       with:
         path: ${{env.EM_CACHE_FOLDER}}
         key: ${{inputs.em_version}}-${{runner.os}}
-    - uses: mymindstorm/setup-emsdk@v12
+    - uses: mymindstorm/setup-emsdk@v14
       with:
         version: ${{inputs.em_version}}
         actions-cache-folder: ${{env.EM_CACHE_FOLDER}}
