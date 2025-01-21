@@ -60,7 +60,7 @@ jobs:
     - name: Build wa-sqlite
       working-directory: ./wa-sqlite
       run: |
-        make ${{inputs.make_args}}
+        make ${{inputs.make_args}} SQLITE_VERSION=${{inputs.sqlite_tag}}
         (cd dist; tar czf ../wa-sqlite.dist.tgz .)
 
     # Package
