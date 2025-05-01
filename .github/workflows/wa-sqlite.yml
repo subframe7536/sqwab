@@ -7,13 +7,13 @@ on:
     inputs:
       sqlite_tag:
         description: 'SQLite source tree tag'
-        default: 'version-3.49.0'
+        default: 'version-3.49.1'
         required: true
         type: string
 
       em_version:
         description: 'EMSDK version'
-        default: '4.0.1'
+        default: '4.0.8'
         required: true
         type: string
 
