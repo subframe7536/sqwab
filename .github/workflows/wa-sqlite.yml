@@ -64,7 +64,7 @@ jobs:
         fs.writeFileSync(path, JSON.stringify(arr, null, 2) + "\n");
         EOF
 
-        cat wa-sqlite/src/exported_function.json
+        cat wa-sqlite/src/exported_functions.json
 
     # Overlay files.
     - run: tar -C overlay.wa-sqlite -cf - . | tar -C wa-sqlite -xvf -
