@@ -13,7 +13,7 @@ on:
 
       em_version:
         description: 'EMSDK version'
-        default: '4.0.9'
+        default: '4.0.6'
         required: true
         type: string
 
@@ -62,8 +62,6 @@ jobs:
       run: |
         make ${{inputs.make_args}} SQLITE_VERSION=${{inputs.sqlite_tag}}
         (cd dist; tar czf ../wa-sqlite.dist.tgz .)
-      env:
-        EMFLAGS_EXTRA: '-sEXPORTED_RUNTIME_METHODS=HEAPU8,HEAPU32,HEAP32'
 
     # Package
     - name: Create release
