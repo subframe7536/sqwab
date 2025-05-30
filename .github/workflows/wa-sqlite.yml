@@ -60,8 +60,10 @@ jobs:
     - name: Build wa-sqlite
       working-directory: ./wa-sqlite
       run: |
-        EMFLAGS_EXTRA='-s EXPORTED_RUNTIME_METHODS=HEAPU8,HEAPU32,HEAP32' make ${{inputs.make_args}} SQLITE_VERSION=${{inputs.sqlite_tag}}
+        make ${{inputs.make_args}} SQLITE_VERSION=${{inputs.sqlite_tag}}
         (cd dist; tar czf ../wa-sqlite.dist.tgz .)
+      env:
+        EMFLAGS_EXTRA: '-s EXPORTED_RUNTIME_METHODS=HEAPU8,HEAPU32,HEAP32'
 
     # Package
     - name: Create release
