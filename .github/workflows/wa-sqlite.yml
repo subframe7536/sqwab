@@ -34,7 +34,11 @@ jobs:
     steps:
     - uses: actions/checkout@v4
       with:
-        sparse-checkout: overlay.wa-sqlite
+        sparse-checkout: |
+          overlay.wa-sqlite
+          third_party/sqlite-vec
+          .gitmodules
+        submodules: true
     
     # Install EMSDK
     - name: Setup Emscripten
@@ -68,13 +72,84 @@ jobs:
 
     # Overlay files.
     - run: tar -C overlay.wa-sqlite -cf - . | tar -C wa-sqlite -xvf -
+
+    # sqlite-vec's archive target expects a generated header and SQLite's header.
+    - name: Build sqlite-vec static archive
+      env:
+        SQLITE_TAG: ${{ inputs.sqlite_tag }}
+      run: |
+        make -C wa-sqlite "SQLITE_VERSION=$SQLITE_TAG" "deps/$SQLITE_TAG/sqlite3.h"
+        make -C third_party/sqlite-vec sqlite-vec.h
+        CPATH="$PWD/wa-sqlite/deps/$SQLITE_TAG${CPATH:+:$CPATH}" \
+          make -C third_party/sqlite-vec dist/.wasm/libsqlite_vec.wasm.a
     
     # Build
     - name: Build wa-sqlite
       working-directory: ./wa-sqlite
+      env:
+        MAKE_ARGS: ${{ inputs.make_args }}
+        SQLITE_TAG: ${{ inputs.sqlite_tag }}
+        SQLITE_VEC_ARCHIVE: ${{ github.workspace }}/third_party/sqlite-vec/dist/.wasm/libsqlite_vec.wasm.a
       run: |
-        make ${{inputs.make_args}} SQLITE_VERSION=${{inputs.sqlite_tag}}
+        # Parse existing make arguments without evaluating shell code. Keep
+        # caller-provided values when appending the required extension flags.
+        mapfile -d '' -t make_args < <(python3 - <<'PY'
+        import os
+        import shlex
+        import sys
+
+        args = shlex.split(os.environ['MAKE_ARGS'])
+        required = {
+            'CFLAGS_EXTRA': '-DSQLITE_EXTRA_INIT=sqlite3_wasm_extra_init',
+            'EMFLAGS_EXTRA': '-Wl,--whole-archive ' + os.environ['SQLITE_VEC_ARCHIVE'] + ' -Wl,--no-whole-archive',
+        }
+        for key, flag in required.items():
+            matches = [i for i, arg in enumerate(args) if arg.startswith(key + '=')]
+            if matches:
+                i = matches[-1]
+                args[i] += ' ' + flag
+            else:
+                args.append(key + '=' + flag)
+        sys.stdout.buffer.write(b'\0'.join(arg.encode() for arg in args) + b'\0')
+        PY
+        )
+        make "${make_args[@]}" "SQLITE_VERSION=$SQLITE_TAG"
         (cd dist; tar czf ../wa-sqlite.dist.tgz .)
+
+    - name: Smoke test sqlite-vec
+      working-directory: ./wa-sqlite
+      run: |
+        node --input-type=module <<'JS'
+        import assert from 'node:assert/strict';
+        import { readFileSync } from 'node:fs';
+        import factory from './dist/wa-sqlite-async.mjs';
+        import * as SQLite from './src/sqlite-api.js';
+
+        const module = await factory({
+          wasmBinary: readFileSync('./dist/wa-sqlite-async.wasm'),
+        });
+        const sqlite3 = SQLite.Factory(module);
+        const db = await sqlite3.open_v2(':memory:');
+        try {
+          const versions = [];
+          await sqlite3.exec(db, 'SELECT vec_version()', row => versions.push(row[0]));
+          assert.equal(versions.length, 1);
+          assert.ok(versions[0]);
+
+          await sqlite3.exec(db, 'CREATE VIRTUAL TABLE items USING vec0(embedding float[2])');
+          await sqlite3.exec(db, `INSERT INTO items(rowid, embedding) VALUES
+            (1, '[1, 0]'), (2, '[0, 1]')`);
+          const matches = [];
+          await sqlite3.exec(db, `SELECT rowid, distance FROM items
+            WHERE embedding MATCH '[1, 0]' ORDER BY distance LIMIT 1`,
+            row => matches.push(row));
+          assert.equal(matches.length, 1);
+          assert.equal(matches[0][0], 1);
+          console.log(`sqlite-vec ${versions[0]}: nearest rowid ${matches[0][0]}`);
+        } finally {
+          await sqlite3.close(db);
+        }
+        JS
 
     # Package
     - name: Create release

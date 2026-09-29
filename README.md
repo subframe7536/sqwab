@@ -17,6 +17,20 @@ To use it:
     * Emscripten SDK version - This is the [Emscripten toolchain]([url](https://emscripten.org/docs/tools_reference/emsdk.html)https://emscripten.org/docs/tools_reference/emsdk.html) version. By default, this is something close to current when I created the workflow.
 * A successful run of the workflow will produce a new [GitHub release](https://docs.github.com/en/repositories/releasing-projects-on-github) on your fork with an attached file containing the built artifacts.
 
+## sqlite-vec in wa-sqlite
+
+The wa-sqlite builds include [sqlite-vec](https://github.com/asg017/sqlite-vec) as a statically linked extension. Its source is the `third_party/sqlite-vec` git submodule; the committed submodule revision pins the version. The build registers sqlite-vec automatically during SQLite initialization, so every opened database can use it without `.load` or a JS initialization call. Dynamic extension loading remains disabled.
+
+```sql
+SELECT vec_version();
+
+CREATE VIRTUAL TABLE items USING vec0(
+  embedding float[2]
+);
+```
+
+To upgrade sqlite-vec, explicitly update and commit the submodule revision. The separate official SQLite WASM build does not include this extension.
+
 If you want to change the workflow itself, they are under .github/workflows/.
 
 If the build workflow fails with an error like `HTTP 403: Resource not accessible by integration`, you may need to change your [GitHub Actions permissions](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/enabling-features-for-your-repository/managing-github-actions-settings-for-a-repository#managing-github-actions-permissions-for-your-repository). Make sure that "Workflow permissions" is set to "Read and write permissions".
