@@ -7,13 +7,13 @@ on:
     inputs:
       sqlite_tag:
         description: 'SQLite source tree tag'
-        default: 'version-3.50.1'
+        default: 'version-3.53.4'
         required: true
         type: string
 
       em_version:
         description: 'EMSDK version'
-        default: '4.0.9'
+        default: '4.0.23'
         required: true
         type: string
 
@@ -119,6 +119,7 @@ jobs:
     - name: Create release
       run: |
         echo "wa-sqlite build `date`" >> NOTES
+        echo "wa-sqlite $(git -C wa-sqlite rev-parse HEAD)" >> NOTES
         echo "SQLite ${{inputs.sqlite_tag}}" >> NOTES
         echo "EMSDK ${{inputs.em_version}}" >> NOTES
         echo "${{inputs.make_args}}" >> NOTES

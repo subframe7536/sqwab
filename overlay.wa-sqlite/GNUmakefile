@@ -15,6 +15,6 @@ override EMFLAGS_EXTRA += -Wl,--undefined=sqlite3_vec_init $(SQLITE_VEC_ARCHIVE)
 $(SQLITE_VEC_ARCHIVE): deps/$(SQLITE_VERSION)/sqlite3.h
 	$(MAKE) -C $(SQLITE_VEC_DIR) sqlite-vec.h
 	CPATH="$(abspath deps/$(SQLITE_VERSION))$${CPATH:+:$$CPATH}" \
-	  $(MAKE) -C $(SQLITE_VEC_DIR) dist/.wasm/libsqlite_vec.wasm.a
+	  $(MAKE) -B -C $(SQLITE_VEC_DIR) dist/.wasm/libsqlite_vec.wasm.a
 
 dist/wa-sqlite.mjs dist/wa-sqlite-async.mjs dist/wa-sqlite-jspi.mjs: $(SQLITE_VEC_ARCHIVE)
