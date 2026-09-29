@@ -7,13 +7,13 @@ on:
     inputs:
       sqlite_tag:
         description: 'SQLite source tree tag'
-        default: 'version-3.50.1'
+        default: 'version-3.53.4'
         required: true
         type: string
 
       em_version:
         description: 'EMSDK version'
-        default: '4.0.9'
+        default: '4.0.23'
         required: true
         type: string
 
@@ -34,7 +34,11 @@ jobs:
     steps:
     - uses: actions/checkout@v4
       with:
-        sparse-checkout: overlay.wa-sqlite
+        sparse-checkout: |
+          overlay.wa-sqlite
+          third_party/sqlite-vec
+          .gitmodules
+        submodules: true
     
     # Install EMSDK
     - name: Setup Emscripten
@@ -68,7 +72,7 @@ jobs:
 
     # Overlay files.
     - run: tar -C overlay.wa-sqlite -cf - . | tar -C wa-sqlite -xvf -
-    
+
     # Build
     - name: Build wa-sqlite
       working-directory: ./wa-sqlite
@@ -76,10 +80,46 @@ jobs:
         make ${{inputs.make_args}} SQLITE_VERSION=${{inputs.sqlite_tag}}
         (cd dist; tar czf ../wa-sqlite.dist.tgz .)
 
+    - name: Smoke test sqlite-vec
+      working-directory: ./wa-sqlite
+      run: |
+        node --input-type=module <<'JS'
+        import assert from 'node:assert/strict';
+        import { readFileSync } from 'node:fs';
+        import factory from './dist/wa-sqlite-async.mjs';
+        import * as SQLite from './src/sqlite-api.js';
+
+        const module = await factory({
+          wasmBinary: readFileSync('./dist/wa-sqlite-async.wasm'),
+        });
+        const sqlite3 = SQLite.Factory(module);
+        const db = await sqlite3.open_v2(':memory:');
+        try {
+          const versions = [];
+          await sqlite3.exec(db, 'SELECT vec_version()', row => versions.push(row[0]));
+          assert.equal(versions.length, 1);
+          assert.ok(versions[0]);
+
+          await sqlite3.exec(db, 'CREATE VIRTUAL TABLE items USING vec0(embedding float[2])');
+          await sqlite3.exec(db, `INSERT INTO items(rowid, embedding) VALUES
+            (1, '[1, 0]'), (2, '[0, 1]')`);
+          const matches = [];
+          await sqlite3.exec(db, `SELECT rowid, distance FROM items
+            WHERE embedding MATCH '[1, 0]' ORDER BY distance LIMIT 1`,
+            row => matches.push(row));
+          assert.equal(matches.length, 1);
+          assert.equal(matches[0][0], 1);
+          console.log(`sqlite-vec ${versions[0]}: nearest rowid ${matches[0][0]}`);
+        } finally {
+          await sqlite3.close(db);
+        }
+        JS
+
     # Package
     - name: Create release
       run: |
         echo "wa-sqlite build `date`" >> NOTES
+        echo "wa-sqlite $(git -C wa-sqlite rev-parse HEAD)" >> NOTES
         echo "SQLite ${{inputs.sqlite_tag}}" >> NOTES
         echo "EMSDK ${{inputs.em_version}}" >> NOTES
         echo "${{inputs.make_args}}" >> NOTES
