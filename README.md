@@ -19,7 +19,7 @@ To use it:
 
 ## sqlite-vec in wa-sqlite
 
-The wa-sqlite builds include [sqlite-vec](https://github.com/asg017/sqlite-vec) as a statically linked extension. Its source is the `third_party/sqlite-vec` git submodule; the committed submodule revision pins the version. The build registers sqlite-vec automatically during SQLite initialization, so every opened database can use it without `.load` or a JS initialization call. Dynamic extension loading remains disabled.
+The wa-sqlite builds include [sqlite-vec](https://github.com/asg017/sqlite-vec) as a statically linked extension. Its source is the `third_party/sqlite-vec` git submodule; the committed submodule revision pins the version. The wa-sqlite overlay's `sqlite3_wasm_extra_init.c` registers sqlite-vec during SQLite initialization, and its `GNUmakefile` adds the archive to the upstream build. Every opened database can use sqlite-vec without `.load` or a JS initialization call. Dynamic extension loading remains disabled.
 
 ```sql
 SELECT vec_version();
