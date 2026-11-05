@@ -25,3 +25,16 @@ $(SQLITE_VEC_ARCHIVE): deps/$(SQLITE_VERSION)/sqlite3.h $(SQLITE_VEC_HEADER)
 	  $(MAKE) -B -C $(SQLITE_VEC_DIR) dist/.wasm/libsqlite_vec.wasm.a
 
 dist/wa-sqlite.mjs dist/wa-sqlite-async.mjs dist/wa-sqlite-jspi.mjs: $(SQLITE_VEC_ARCHIVE)
+
+# The upstream deps recipe configures the SQLite source with only
+# --enable-all, which does not include update-limit. Generate the
+# amalgamation with the same feature set compiled later via
+# WASQLITE_EXTRA_DEFINES so that e.g. -DSQLITE_ENABLE_UPDATE_DELETE_LIMIT
+# reaches both the lemon parser and the C sources.
+SQLITE_CONFIGURE_FLAGS ?= --enable-all --enable-update-limit
+
+deps/$(SQLITE_VERSION)/sqlite3.h deps/$(SQLITE_VERSION)/sqlite3.c:
+	mkdir -p cache/$(SQLITE_VERSION)
+	curl -LsS $(SQLITE_TARBALL_URL) | tar -xzf - -C cache/$(SQLITE_VERSION)/ --strip-components=1
+	mkdir -p deps/$(SQLITE_VERSION)
+	(cd deps/$(SQLITE_VERSION); ../../cache/$(SQLITE_VERSION)/configure $(SQLITE_CONFIGURE_FLAGS) && make sqlite3.c)

@@ -9,9 +9,10 @@ To use it:
   * Using the [ext/wasm/sqlite3_wasm_extra_init.c](https://sqlite.org/src/info?name=0e362f3fc04eab6628cbe4f1e35f4ab4a200881f6b5f753b27fb45eabeddd9d2&ln=216-237) extension point to add C code.
 * Once your changes are on GitHub, [manually run the workflow](https://docs.github.com/en/actions/using-workflows/manually-running-a-workflow) for wa-sqlite or SQLite. You will be prompted for some options:
   * wa-sqlite
+    * wa-sqlite commit/tag/branch - The upstream revision to check out and build. Defaults to `master`.
     * SQLite source tree tag - Enter a SQLite source tree tag, e.g. "version-3.53.4"
     * Emscripten SDK version - This is the [Emscripten toolchain]([url](https://emscripten.org/docs/tools_reference/emsdk.html)https://emscripten.org/docs/tools_reference/emsdk.html) version. By default, this is something close to current when I created the workflow.
-    * make arguments - Any arguments will be passed to make, e.g. to include full text search enter WASQLITE_EXTRA_DEFINES="-DSQLITE_ENABLE_FTS5".
+    * make arguments - Any arguments will be passed to make, e.g. to include full text search enter WASQLITE_EXTRA_DEFINES="-DSQLITE_ENABLE_FTS5". Flags that change the generated parser grammar (like `-DSQLITE_ENABLE_UPDATE_DELETE_LIMIT`) also need a matching SQLite configure flag; override `SQLITE_CONFIGURE_FLAGS` (default `--enable-all --enable-update-limit`) to change it.
   * SQLite
     * Source tarball URL - Enter a source code tarball link (see the [SQLite repo home](https://sqlite.org/src/doc/trunk/README.md) under "Obtaining the SQLite Source Code"). By default this is the latest release.
     * Emscripten SDK version - This is the [Emscripten toolchain]([url](https://emscripten.org/docs/tools_reference/emsdk.html)https://emscripten.org/docs/tools_reference/emsdk.html) version. By default, this is something close to current when I created the workflow.
